@@ -35,31 +35,31 @@ typedef struct{
 	uint32_t	vct, ect;
 }Graph;
 
-int parseInt(char* text, int ix, uint32_t* ret){
+int parseInt(char* text, int ix, int len, uint32_t* ret){
 	*ret = 0;
-	while((text[ix] >= '0') && (text[ix] <= '9')){
+	while((text[ix] >= '0') && (text[ix] <= '9') && (ix < len)){
 		*ret = ((*ret) * 10) + (text[ix] - '0');
 		ix++;
 	}
 	return ix;
 }
 
-int skipWhitespace(char* text, int ix){
-	while(text[ix] <= ' ') ix++;
+int skipWhitespace(char* text, int ix, int len){
+	while((text[ix] <= ' ') && (ix < len)) ix++;
 	return ix;
 }
 
 int parseGraph(char* text, int size, Graph* g){
 	int ix = 0;
-	ix = skipWhitespace(text, ix);
+	ix = skipWhitespace(text, ix, size);
 	if(ix >= size) return 0;
-	ix = parseInt(text, ix, &g->vct);
+	ix = parseInt(text, ix, size, &g->vct);
 	if(ix >= size) return 0;
-	ix = skipWhitespace(text, ix);
+	ix = skipWhitespace(text, ix, size);
 	if(ix >= size) return 0;
-	ix = parseInt(text, ix, &g->ect);
+	ix = parseInt(text, ix, size, &g->ect);
 	if(ix >= size) return 0;
-	ix = skipWhitespace(text, ix);
+	ix = skipWhitespace(text, ix, size);
 	if(ix >= size) return 0;
 	
 	g->as = malloc(sizeof(uint32_t) * g->ect);
@@ -70,13 +70,13 @@ int parseGraph(char* text, int size, Graph* g){
 		if(ct > g->ect) return 0;
 		
 		uint32_t a, b;
-		ix = parseInt(text, ix, &a);
+		ix = parseInt(text, ix, size, &a);
 		if(ix >= size) return 0;
-		ix = skipWhitespace(text, ix);
+		ix = skipWhitespace(text, ix, size);
 		if(ix >= size) return 0;
-		ix = parseInt(text, ix, &b);
+		ix = parseInt(text, ix, size, &b);
 		if(ix >= size) return 0;
-		ix = skipWhitespace(text, ix);
+		ix = skipWhitespace(text, ix, size);
 		
 		g->as[ct] = a;
 		g->bs[ct] = b;
@@ -126,8 +126,36 @@ void printGraph(Graph g){
 }
 
 
+int isomorphism(Graph a, Graph b){
+	// Initial checks
+	if(a.ect != b.ect) return 0;
+	if(a.vct != b.vct) return 0;
+	
+	// First pass, get number ranges
+	int nmaxa = 0, nmina = a.vct;
+	int nmaxb = 0, nminb = b.vct;
+	for(int i = 0; i < a.ect; i++){
+		nmaxa = (nmaxa > a.edgeCts[i])? nmaxa : a.edgeCts[i];
+		nmina = (nmina < a.edgeCts[i])? nmina : a.edgeCts[i];
+		nmaxb = (nmaxb > b.edgeCts[i])? nmaxb : a.edgeCts[i];
+		nminb = (nminb < b.edgeCts[i])? nminb : a.edgeCts[i];
+	}
+	if(nmaxa != nmaxb) return 0;
+	if(nmina != nminb) return 0;
+	
+	int* as = alloca(sizeof(int) * nmaxa);
+	int* bs = alloca(sizeof(int) * nmaxb);
+	
+	// TODO: more
+	
+	return 1;
+}
+
+
+
 
 int main(int argc, char** args){
+	Graph* gs = malloc(sizeof(Graph) * (argc-1));
 	for(int i = 1; i < argc; i++){
 		uint8_t* buffer;
 		int      fsize;
@@ -135,13 +163,19 @@ int main(int argc, char** args){
 			printf("Could not load file %s\n", args[i]);
 			continue;
 		}
-		Graph g;
-		if(!parseGraph((char*)buffer, fsize, &g)){
+		if(!parseGraph((char*)buffer, fsize, &gs[i-1])){
 			printf("Bad graph description\n");
 			continue;
 		}
 		
 		// TODO: Get a pair of graphs, check isomorphism
-		printGraph(g);
+		printGraph(gs[i-1]);
+		
+		if(i > 2){
+			if(isomorphism(gs[i-1], gs[i-2]))
+				printf("ISO\n");
+			else
+				printf("NON-ISO\n");
+		}
 	}
 }
